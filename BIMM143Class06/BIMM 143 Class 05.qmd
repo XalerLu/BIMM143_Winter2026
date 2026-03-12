@@ -1,0 +1,93 @@
+---
+title: "BIMM 143 Class 06"
+author: Xaler Lu (A17388454)
+format: html
+---
+
+## Background
+All functions in R have at least three things: \
+- A **name** that we use to call the function \
+- One or more input **arguments** \
+- The **body** the lines of R code that do the work \
+`function(arg1,arg2) { paste(body1,body2) }`\
+
+# The Add Function
+Let's write a function called `add()` to sum up some numbers
+```{r}
+add <- function(x, y) {
+  x + y
+}
+```
+
+Now we can use this function
+
+```{r}
+add(100,1)
+add(c(100,1,100), 1)
+add( x=10, y=10)
+```
+
+> Q. What happens when we give a multiple element vector to both `x` and `y`? \
+
+```{r}
+add(c(100,1,100), c(100,1,100))
+```
+
+> Q. What if I give three inputs to the functions like `z`? \
+
+```{r}
+# add(c(100,1), 1, 1)
+```
+
+> Q. What if I give one input to the function instead?
+
+```{r}
+# add(c(100,1))
+```
+
+Let's make a new `add()` function that overrides `y`
+```{r}
+addnew <- function(x, y=1) {
+  x + y
+}
+
+addnew(c(100,1))
+```
+If we write our function with input arguments having no default value, then the user will be required to set them when they use the function. We can give our input argument default values by setting them equal to some sensible value - e.g. `y=1` in the `addnew()` function
+
+## The Sequence Generating Function
+The `sample()` function can be a useful starting point
+```{r}
+sample(1:10, size=4)
+```
+
+> Q. Can I generate nine random numbers taken from the input vector x=1:10?
+
+```{r}
+sample(1:10, size=9)
+```
+
+> Q. Can I generate more than ten random numbers from x=1:10?
+
+We can set `replace` to `TRUE`
+```{r}
+sample(1:10, size=12, replace = TRUE)
+```
+
+> Q. Write code for the `sample()` function that will generate nucleotide sequences of 6 bp.
+
+```{r}
+sequence.practice <- sample(c("A","G","C","T"), size = 6, replace = TRUE)
+paste(sequence.practice, sep="")
+```
+
+> Q. Now we have our snippet, write a function `generate_dna()` that returns a user specified length DNA sequence:
+
+```{r}
+generate_dna <- function(b) {
+  sample( c("A","G","C","T"), size = b, replace = TRUE)
+}
+generate_dna(12)
+```
+
+
