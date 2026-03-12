@@ -1,0 +1,65 @@
+---
+title: "BIMM 143 Class 16"
+format: pdf
+---
+
+## Lists of commands for Git Bash
+
+The following commands will be used in the Terminal Tab \
+`pwd`: Print working directory of your absolute path \
+`ls`: List files in your current directory\
+`cd`: Change directory to home area `/Users/xaler` \
+- `cd Desktop/`: Change directory to `/Users/xaler/Desktop` \
+`mkdir FOLDERNAME`: Make new working directory with a name \
+
+`touch FILENAME1 FILENAME2`: Creates these file names in your current directory \
+`rm FILENAME FILENAME2`: Removes files **DO NOT RUN `rm` BY ITSELF** \
+`cp COPIEDFILE NEWFILE`: Copies the file to a new file \
+`mv OLDNAME NEWNAME`: Renames the file \
+
+`nano FILENAME`: A very basic text editor, press CONTROL X to exit \
+`more FILENAME`: To view the whole file \
+`less FILENAME`: To view the file page by page \
+
+`ssh -i KEYFILE.pem`: Access the VM or instance from cloud computing \
+`scp -i KEYFILE.pem`: Secure copy that brings files between the AWS instance and our computer \
+
+
+## Cloud Computing
+
+Cloud provides allow computational work on the cloud, including Amazon Web Services (AWS), Google Compute Engine, or Microsoft Azure.
+
+Virtual Machines (VM) emulate the architecture of physical computers. AWS's VMs are called Elastic Compute Cloud (EC2) instances.
+
+With your UCSD account, go to AWS with <https://awsed.ucsd.edu/>
+
+My AWS instance: Use the following codes on YOUR computer, NOT in the AWS instance
+
+ssh -i ~/Downloads/BIMM143_Class16_xaler.pem ubuntu@ec2-16-147-248-53.us-west-2.compute.amazonaws.com
+
+scp -i ~/Downloads/BIMM143_Class16_xaler.pem ubuntu@ec2-16-147-248-53.us-west-2.compute.amazonaws.com:~/work/mm-second.x.zebrafish.tsv .
+
+The `.` at the end means your current directory, so the code will send the file from the remote machine to your current directory.
+
+## Questions
+
+> Q. What is the absolute and relative path? How do we use relative path?
+
+The `.` is the shortcut for the current directory
+
+The `..` is the shortcut for parent directory and can be nested \
+../xaler/Desktop/*.csv \
+../Desktop/*.csv \
+../../Downloads/*.csv \
+
+The `~` is the shortcut for your home area `/Users/xaler` \
+~/Downloads/*.csv
+
+The asterisk allows us to list every CSV file 
+
+> Q. How to move a file from the `Downloads` folder to the working directory that is on the `Desktop` folder?
+
+Use `~` instead of `.` to use your home area path
+
+> Q. How to copy all CSV files from `Downloads` to the `BIMMClass16Practice` file?
+

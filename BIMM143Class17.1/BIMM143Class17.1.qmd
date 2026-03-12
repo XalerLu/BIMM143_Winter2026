@@ -1,0 +1,205 @@
+---
+title: "BIMM 143 Class 17"
+author: Xaler Lu (A17388454)
+toc: true
+format: pdf
+---
+
+# Unix Work
+
+## Background
+
+We will use AWS EC2 instances to analyze large biomolecular sequencing datasets. 
+
+Don't forget the IP address of the cloud computer changes every time you relaunch an instance. 
+
+`ssh -i "~/Downloads/BIMM143_Class16_xaler.pem" ubuntu@ec2-35-87-198-206.us-west-2.compute.amazonaws.com`
+
+## The Sequence Read Archive (SRA)
+
+We will visit NCBI's major repository, SRA, for sequencing data. The files we will obtain are highly-compressed, so we must use special tools to decompress these records. 
+
+To begin, we will install the **SRA-toolkit** software and unzip it.
+
+`curl -O https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/current/sratoolkit.current-ubuntu64.tar.gz  `
+
+`tar -zxvf sratoolkit.current-ubuntu64.tar.gz`
+
+We will then go into the directory. Now, we don't want to type out the entire `sratoolkit.3.3.0-ubuntu64/bin/prefetch` every time we want to run `prefetch`, so use the following.
+
+`export PATH=$PATH:/home/ubuntu/sratoolkit.3.3.0-ubuntu64/bin`
+
+## ChIP-Seq Data from Ovarian Cancer DNA Sample
+
+<https://www.ncbi.nlm.nih.gov/sra/SRX193578>
+
+Use `prefetch` to run it with the SRR ID we found in the link.
+
+Prepare the temporary files \
+`prefetch SRR600956`
+
+Exract the data in FASTQ format in your current directory \
+`fasterq-dump SRR600956`
+
+## RNA-Seq Data
+
+The paper <https://pubmed.ncbi.nlm.nih.gov/26656844/> \
+The GEO entry <https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE72001>
+
+We will look into an RNA-Seq dataset from a human cancer cell line.
+
+We will start with the SRA accession number, download their raw data, and analyze the reads for PCA and differential expression analysis.
+
+Prepare the temporary files \
+`prefetch SRR2156848`
+
+Exract the data in FASTQ format in your current directory \
+`fasterq-dump SRR2156848`
+
+Now let's download three other datasets. \
+`prefetch SRR2156849 SRR2156850 SRR2156850` \
+`fastq-dump SRR2156849 SRR2156850 SRR2156850`
+
+## Transcript Quantification via Pseudoalignment
+
+**Kallisto** compares each RNA-seq read against an indexted table of transcript sequences 
+
+`wget https://github.com/pachterlab/kallisto/releases/download/v0.44.0/kallisto_linux-v0.44.0.tar.gz`
+
+We will use the Ensembl reference transcriptome
+
+`wget ftp://ftp.ensembl.org/pub/release-67/fasta/homo_sapiens/cdna/Homo_sapiens.GRCh37.67.cdna.all.fa.gz`
+
+`gunzip Homo_sapiens.GRCh37.67.cdna.all.fa.gz`
+
+
+The `index` command builds the transcript index \
+`kallisto index -i hg19.ensembl Homo_sapiens.GRCh37.67.cdna.all.fa`
+
+The `quant` commands quantifies each transcripts \
+`kallisto quant -i hg19.ensembl -o SRR2156848_quant SRR2156848_1.fastq SRR2156848_2.fastq`
+
+`kallisto quant -i hg19.ensembl -o SRR2156849_quant SRR2156849_1.fastq SRR2156849_2.fastq`
+
+`kallisto quant -i hg19.ensembl -o SRR2156850_quant SRR2156850_1.fastq SRR2156850_2.fastq`
+
+`kallisto quant -i hg19.ensembl -o SRR2156851_quant SRR2156851_1.fastq SRR2156851_2.fastq`
+
+When we have repetitive scripting tasks, we can create simple functions
+
+`nano run_kallisto.sh`
+
+In the nano function, imput the following code. 
+> for id in SRR2156849 SRR2156850 SRR2156851; do
+  echo "Processing sample: $id"
+  kallisto quant -i hg19.ensembl -o ${id}_quant ${id}_1.fastq ${id}_2.fastq
+done
+
+echo "All samples complete!"
+
+## Transfering the results
+
+With these new files, we want to transfer them from the AWS instance to our computer. To do this, open a new terminal and input the following.
+
+`scp -r -i "~/Downloads/BIMM143_Class16_xaler.pem" ubuntu@ec2-35-87-198-206.us-west-2.compute.amazonaws.com:~/*_quant .`
+
+# Downstream Analysis
+
+We will finish the analysis in R with the `tximport` package.
+```{r, message=FALSE, warning=FALSE}
+library(tximport)
+library(rhdf5)
+```
+
+
+We will then set up the folders and file names
+```{r}
+folders <- dir(pattern="SRR21568*")
+samples <- sub("_quant", "", folders)
+files <- file.path(folders, "abundance.h5")
+names(files) <- samples
+
+txi.kallisto <- tximport(files, type = "kallisto", txOut = TRUE)
+```
+
+```{r}
+head(txi.kallisto$counts)
+```
+
+We now have our estimated transcript counts for each sample
+```{r}
+colSums(txi.kallisto$counts)
+```
+
+```{r}
+sum(rowSums(txi.kallisto$counts) >0)
+```
+
+We want to also filter out those annotated transcripts with no reads
+
+```{r}
+to.keep <- rowSums(txi.kallisto$counts) > 0
+kset.nonzero <- txi.kallisto$counts[to.keep,]
+```
+
+We then filter out those with no changes over the samples
+```{r}
+keep2 <- apply(kset.nonzero,1,sd)>0
+x <- kset.nonzero[keep2,]
+```
+
+## PCA
+
+```{r}
+pca <- prcomp(t(x), scale=TRUE)
+summary(pca)
+```
+Base R PCA Plot
+```{r}
+plot(pca$x[,1], pca$x[,2],
+     col=c("blue","blue","red","red"),
+     xlab="PC1", ylab="PC2", pch=16)
+```
+
+PCA ggplot
+```{r, message=FALSE,warning=FALSE}
+library(ggplot2)
+library(ggrepel)
+```
+
+```{r}
+# Make metadata object for the samples
+colData <- data.frame(condition = factor(rep(c("control", "treatment"), each = 2)))
+rownames(colData) <- colnames(txi.kallisto$counts)
+
+# Make the data.frame for ggplot 
+y <- as.data.frame(pca$x)
+y$Condition <- as.factor(colData$condition)
+```
+
+### PC1 VS PC2
+```{r}
+ggplot(y) +
+  aes(PC1, PC2, col = Condition) +
+  geom_point() +
+  geom_text_repel(label=rownames(y)) +
+  theme_bw()
+```
+
+### PC1 VS PC3
+```{r}
+ggplot(y) +
+  aes(PC1, PC3, col = Condition) +
+  geom_point() +
+  geom_text_repel(label=rownames(y)) +
+  theme_bw()
+```
+
+### PC2 VS PC3
+```{r}
+ggplot(y) +
+  aes(PC2, PC3, col = Condition) +
+  geom_point() +
+  geom_text_repel(label=rownames(y)) +
+  theme_bw()
+```

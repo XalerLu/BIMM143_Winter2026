@@ -1,0 +1,56 @@
+---
+title: "BIMM 143 Class 15"
+author: Xaler Lu (A17388454)
+format: pdf
+toc: true
+---
+
+## Background
+
+We will practice with both GitHub and RStudio to streamline workflow. Github is a distributed version control system (D-VCS) that record changes to files over time and track versions over time. It helps make coding collaborative and social, while organizing and archiving files. 
+
+To get started with GitHub, \
+1) Create a repository on <Github.com> (remote) \
+2) Clone locally using RStudio sync local to remote: pull, stage, commit, push \
+3) Explore github.com files, commit history, README \
+4) Get exposure to project-oriented workflows in action \
+
+## Using Git
+
+We can use Git from the RStudio "git pane" in the upper right or from the "Terminal Tab".
+
+1) Initiate a git repository by using `git init` in the Terminal Tab \
+2) Do your stuff (same as ever) \
+3) Select the files that you want to **stage** by using `git add FILENAME` in the Terminal Tab \ 
+4) Commit by using `git commit -m "MESSAGE"` in the Terminal Tab \
+OPTIONAL) Use `git log` in the Terminal Tab to get a list of changes \
+
+## Connecting RStudio to GitHub
+
+To connect the GitHub website and RStudio \
+1) Sign up for a GitHub account. \
+2) Use your username and a **Personal Access Token (PAT)** \
+3) Use `create_github_token()` from the `usethis` package \
+4) Use `gitcreds_set()` from the `gitcreds` package
+
+```{r,message = FALSE, warning= FALSE}
+library(usethis)
+library(gitcreds)
+```
+
+```{r}
+create_github_token()
+```
+
+
+
+
+
+
+
+
+
+
+
+
+

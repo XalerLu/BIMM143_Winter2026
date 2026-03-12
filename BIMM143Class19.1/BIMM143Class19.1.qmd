@@ -1,0 +1,28 @@
+---
+title: "BIMM 143 Class 19"
+author: "Xaler Lu (A17388454)"
+format: html
+---
+
+```{r}
+library(bio3d)
+```
+
+```{r}
+data <- read.fasta("A17388454_mutant_seq.fa")
+```
+
+```{r}
+mutation <- which(conserv(data$ali) < 1)
+```
+
+```{r}
+paste(data$ali[1,mutation],mutation,data$ali[2,mutation], sep = "" )
+```
+
+```{r}
+wt_seq <- paste(data$ali[1,], collapse = "")
+cat(data$ali[1,], sep = "")
+```
+
+
