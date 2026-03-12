@@ -4,7 +4,7 @@ My classwork for [BIMM143](https://github.com/XalerLu/BIMM143_GitHub.git) in Win
 pwd## Index of Material
 
 *Introductory Material*
-- Class 04 [Intro to R]()
+- Class 04 [Intro to R](BIMM143Class05.qmd)
 - Class 05 [Data Visualization with ggplot]()
 - Class 06 [R Functions]()
 - Class 07 [Intro to Bioinformatics]()
