@@ -1,0 +1,240 @@
+---
+title: "BIMM 143 Class 10"
+author: "Xaler Lu (A17388454)"
+format: html
+TOC: true
+---
+
+## Background
+
+The goal today is to understand the structure of proteins in PDB format. Protein structure can give us insight on the function of said protein. 
+
+Sequence -(Energetics)-> Structure -(Dynamics)-> Function (in specific conformations)
+
+
+## PDB Statistics
+
+The Protein Data Bank (PDB) is the main repository of biomolecular structures. Let's see what it contains.
+
+```{r}
+stats <- read.csv("pdb_stats.csv", row.names = 1)
+head(stats)
+```
+
+
+The data are not "numbers". We would need to convert them to sum them up. 
+```{r}
+stats$X.ray
+```
+
+The commas in these numbers lead to the numbers here being characters. To fix this, we use a different read function called `readr`.
+
+```{r}
+library(readr)
+pdb_stats <- read_csv("pdb_stats.csv")
+pdb_stats
+```
+
+> Q1: What percentage of structures in the PDB are solved by X-Ray and Electron Microscopy.
+
+The percentage of structures solved by both X-ray and EM is 93.78%. The percentage individually are 80.95% for X-ray and 12.83% for EM.
+```{r}
+sum(pdb_stats$`X-ray`, pdb_stats$EM)/sum(pdb_stats$Total) * 100
+sum(pdb_stats$`X-ray`)/sum(pdb_stats$Total) * 100
+sum(pdb_stats$EM)/sum(pdb_stats$Total) * 100
+```
+
+> Q2: What proportion of structures in the PDB are protein?
+
+The proportion is 85.97%
+```{r}
+pdb_stats[1,9]/sum(pdb_stats$Total)
+```
+
+
+> Q3
+
+4990.
+
+## Visualizing the HIV-1 Protease Structure
+
+We can use the Molstar viewer: https://molstar.org/viewer/
+
+We use `markdown` aka `![caption here](image here)` to insert images NOT in R code. 
+
+![Structure of HIV-1 Protease](1HSG.png)
+
+> Q4: Water molecules normally have 3 atoms. Why do we see just one atom per water molecule in this structure?
+
+This is likely only showing the oxygen atom to simplify the mode.
+
+> Q5: There is a critical “conserved” water molecule in the binding site. Can you identify this water molecule? What residue number does this water molecule have
+
+The water molecule is called HOH 308.
+
+> Q6: Generate and save a figure clearly showing the two distinct chains of HIV-protease along with the ligand. You might also consider showing the catalytic residues ASP 25 in each chain and the critical water (we recommend “Ball & Stick” for these side-chains). Add this figure to your Quarto document.
+
+A new clean image showing the catalytic ASP25 amino acids in both chains of the HIV-PR homo-dimer along with the inhibitor and the important active site water.
+
+![ASP25 and the important active site water](1HSG(2).png)
+
+
+## Introduction to Bio3D
+
+```{r}
+library(bio3d)
+```
+
+```{r}
+pdb <- read.pdb("1hsg")
+pdb
+```
+
+```{r}
+attributes(pdb)
+```
+```{r}
+head(pdb$atom)
+```
+
+Here is an interactive structure of 1HSG. 
+```{r}
+library(pak)
+library(bio3dview)
+library(NGLVieweR)
+
+
+view.pdb(pdb) |> 
+  setSpin()
+```
+
+
+> Q7. How many amino acid residues are there in the pdb object?
+
+128.
+
+> Q8. Name one of the two non-protein residues?
+
+HOH 127, and merk1 (1) 
+
+> Q9. How many protein chains are in this structure?
+
+2.
+
+## Predicting functional motions of a single structure
+
+Let's read a new PDB structure of Adenylate Kinase. We will perform normal mode of analysis
+
+```{r}
+adk <- read.pdb("6s36")
+adk
+```
+Normal Mode Analysis (NMA) `nma()` is a structural bioinformatics method to predict protein flexibility and potential functional motions.
+```{r}
+m <- nma(adk)
+```
+
+```{r}
+plot(m)
+```
+
+We can generate a molecular "trajectory" with `mktrj()`. We then load this new file into Molstar. 
+
+```{r}
+mktrj(m, file="adk_m7.pdb")
+```
+
+Alternatively, we can quickly view it with `bio3dview`.
+```{r}
+view.nma(m, pdb=adk)
+```
+
+## Comparative Analysis with PCA
+
+To perform a PCA of a PDB search, we use the following functions in order: \
+1) `get.seq()` to get the sequence \
+2) `blast.pdb()` to run the BLAST \
+3) `get.pdb()` to download the data into a sub-folder \
+4) `pdbaln()` to align the sequences of all related proteins \
+5) `pca()` to run the PCA \
+
+Function for comparative analysis
+```{r}
+blast.pca <- function(x, y = "pdbs", z = "pca.pdb") {
+  library(bio3d)
+  library(bio3dview)
+  library(BiocManager)
+  aa <- get.seq(x)
+  blast <- blast.pdb(aa)
+  hits <- plot(blast)
+  head(blast$hit.tbl)
+  files <- get.pdb(hits$pdb.id, path=y, split=T, gzip=T)
+  pdbs <- pdbaln(files, fit = T, exefile = "msa")
+  view.pdbs(pdbs, colorScheme = "residue")
+  pc.xray <- pca(pdbs)
+  plot(pc.xray, 1:2)
+  pc1 <- mktrj(pc.xray, file=z)
+}
+
+```
+
+
+1) Find an ADK sequence
+```{r}
+id <- "1ake_A" ## Change this id to run a different analysis
+aa <- get.seq(id)
+aa
+```
+
+2) Search the PDB database for all related entries using BLAST.
+```{r}
+blast <- blast.pdb(aa)
+hits <- plot(blast)
+```
+
+
+Here are the BLAST results with he top hits  in the `hits` object.The cut-off are subject sequences in red are less related to the query sequence.
+```{r}
+head(blast$hit.tbl)
+```
+
+3) Download these to the computuer. Put these in a sub-folder (directory) called pdbs
+```{r}
+files <- get.pdb(hits$pdb.id, path="pdbs", split=T, gzip=T)
+```
+
+
+![A look at all related proteins to "1ake_A"](Hotmess.png)
+
+4) Alignment and superposition of all related proteins.
+
+This requires the BioConductor package called `msa`. We will need to install the package `BiocManager` and run `BiocManager::install("msa")` in the console. 
+```{r}
+library(BiocManager)
+
+pdbs <- pdbaln(files, fit = T, exefile = "msa")
+pdbs
+```
+
+We can view this with `bio3dview` using `views.pdbs()`
+```{r}
+library(bio3dview)
+view.pdbs(pdbs, colorScheme = "residue")
+```
+5) Run PCA on the `pdbs` object using `pca()` instead of "Base R" `prcomp()` because it works on other data types. We use `1:2` to only give us PC1 and PC2
+```{r}
+pc.xray <- pca(pdbs)
+plot(pc.xray, 1:2)
+```
+
+We can make a visualization of the major conformational difference captured by our PCA analysis with `mktrj()`. View this in Molstar.
+```{r}
+pc1 <- mktrj(pc.xray, file="pca.pdb")
+
+```
+
+
+
+
+
+

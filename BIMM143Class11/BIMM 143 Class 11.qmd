@@ -1,0 +1,151 @@
+---
+title: "BIMM 143 Class 11"
+author: "Xaler Lu (A17388454)"
+format: pdf
+---
+
+## Background
+The PDB database only has ~250k entries unlike UniProtKB with has over 200 million entries.
+
+We will utilize **AlphaFold** to predict the protein structure from the sequence itself. Atomic structures or distinct 3D shapes of proteins can give insight of its catalysis, signaling, transport, replication, division, and movement. Slight alterations in structure can lead to drastic changes in activity. 
+
+We have two approaches: physics-based and knowledged-based. \
+**Physics-based:** The sum of all potential energy plotted as a PE surface. Energy of bonds = bond stretch, bond angle, and bond rotation. Energy of nonbonds = Electrostatic and van der Waals. \
+V(R) = E(bonded) + E(nonbonded)
+**Knowledge-based:** Docking potentials and use probability as a proxy for energy.  
+
+
+## The EBI AlphFold Database
+
+The EBI AlphaFold database contains a lot of computed structure models. It is increasingly likely that the structure you are interested in is already in this database. < https://alphafold.ebi.ac.uk/ >
+
+Use this sequence to search
+>HIV-Pr
+PQITLWQRPLVTIKIGGQLKEALLDTGADDTVLEEMSLPGRWKPKMIGGIGGFIKVRQYDQILIEICGHKAIGTVLVGPTPVNIIGRNLLTQIGCTLNF
+
+
+There are three major outputs from AlphaFold: \
+1) A **model** of structure in PDB format \
+2) A **pLDDT** score is how confident the model is for a given residue in the protein. \
+3) A **PAE** score is the quality of protein packing.
+
+If you can't find a matching entry for the sequence you are interested in AFDB, then you can run AlphaFold yourself.
+
+## Running AlphaFold
+
+We will run AlphaFold using MMseqs2 on Github. < https://colab.research.google.com/github/sokrypton/ColabFold/blob/main/AlphaFold2.ipynb#scrollTo=KK7X9T44pWb7 > Don't forget to use the cloud's GPU because this Mac doesn't have a GPU.
+
+## Alignment
+
+![Likely](Likely HIV Alignment.png)
+![Unlikely](Unlikely HIV Alignment.png)
+Loading packages
+```{r}
+library(bio3d)
+library(bio3dview)
+library(pheatmap)
+```
+
+
+## Interpreting Results
+
+We can read all the AlphaFold results into R and do more quantitative analysis than just viewing the structures in Mol-star:
+
+Read all the PDB models:
+```{r}
+pdb.files <- list.files("HIVPR_23119/", pattern = ".pdb", full.names = T)
+```
+
+```{r}
+pdbs <- pdbaln(pdb.files, fit = T, exefile = "msa")
+#view.pdbs(pdbs)
+```
+
+How similar or different are my models? Root mean squared.
+```{r}
+
+
+rd <- rmsd(pdbs)
+pheatmap(rd) 
+colnames(rd) <- paste0("m",1:5) 
+rownames(rd) <- paste0("m",1:5)
+
+pheatmap(rd)
+```
+
+Homework: Make graphs of pLDDT and PAE score.
+
+```{r}
+pdb <- read.pdb("1hsg")
+```
+
+```{r}
+plotb3(pdbs$b[1,], typ="l", lwd=2, sse=pdb)
+points(pdbs$b[2,], typ="l", col="red")
+points(pdbs$b[3,], typ="l", col="blue")
+points(pdbs$b[4,], typ="l", col="darkgreen")
+points(pdbs$b[5,], typ="l", col="orange")
+abline(v=100, col="gray")
+```
+
+```{r}
+core <- core.find(pdbs)
+```
+```{r}
+core.inds <- print(core, vol=0.5)
+```
+```{r}
+xyz <- pdbfit(pdbs, core.inds, outpath="corefit_structures")
+xyz
+```
+
+The first chain is more similar across different models, but the second chain is more variable. 
+```{r}
+rf <- rmsf(xyz)
+
+plotb3(rf, sse=pdb)
+abline(v=100, col="gray", ylab="RMSF")
+```
+
+
+```{r}
+library(jsonlite)
+```
+
+```{r}
+pae_files <- list.files(path="HIVPR_23119/",
+                        pattern=".*model.*\\.json",
+                        full.names = TRUE)
+```
+
+```{r}
+pae1 <- read_json(pae_files[1],simplifyVector = TRUE)
+pae5 <- read_json(pae_files[5],simplifyVector = TRUE)
+
+attributes(pae1)
+```
+
+
+```{r}
+plot.dmat(pae1$pae, 
+          xlab="Residue Position (i)",
+          ylab="Residue Position (j)")
+```
+
+```{r}
+plot.dmat(pae5$pae, 
+          xlab="Residue Position (i)",
+          ylab="Residue Position (j)",
+          grid.col = "black",
+          zlim=c(0,30))
+```
+
+```{r}
+plot.dmat(pae1$pae, 
+          xlab="Residue Position (i)",
+          ylab="Residue Position (j)",
+          grid.col = "black",
+          zlim=c(0,30))
+```
+
+

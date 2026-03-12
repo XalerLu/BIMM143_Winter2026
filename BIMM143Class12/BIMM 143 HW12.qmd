@@ -1,0 +1,36 @@
+---
+title: "BIMM 143 Class 12"
+author: "Xaler Lu (A17388454)"
+format: pdf
+---
+
+```{r}
+data1 <- read.table("https://bioboot.github.io/bimm143_W26/class-material/rs8067378_ENSG00000172057.6.txt", row.names = 2)
+data <- data1[,-1]
+```
+
+
+> Q13 Determine the sample size for each genotype and their corresponding median expression levels for each of these genotypes.
+
+The sample size for A|A is 108, A|G is 233, and G|G is 121. 
+```{r}
+table(data$geno)
+```
+
+
+The median for A|A is 31.24, A|G is 25.06, and G|G is 20.07.
+```{r}
+tapply(data$exp, data$geno, median)
+
+```
+
+
+> Q14. What could you infer from the relative expression value? Does the SNP affect the expression of ORMDL3?
+
+
+The order of highest to lowest expression with the specific genotype is A|A, A|G, and G|G. This implies that the SNP with As increases the expression of ORMDL3 more than Gs. The heterozygous genotype has an intermediate expression level, which means this is not dominant nor recessive. 
+```{r}
+library(ggplot2)
+genotype <- ggplot(data) + aes(geno, exp, color = geno) + geom_boxplot()
+genotype
+```
